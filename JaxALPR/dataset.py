@@ -91,8 +91,10 @@ def load_image(ds_item) -> Tuple:
   coords = np.array(coords) * np.array([[img.shape[1]], [img.shape[0]]])
 
   img, coords = crop(img, coords.astype(int))
+  coords = coords / img.shape[0]
+  img = cv2.resize(img, (512, 512), interpolation=cv2.INTER_AREA)
 
-  return img, coords / img.shape[0], np.array(number)
+  return img, coords, np.array(number)
 
 
 def object_label(coords: np.ndarray, image_size: int, stride: int):

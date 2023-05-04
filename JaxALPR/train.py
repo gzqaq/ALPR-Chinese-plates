@@ -3,7 +3,6 @@ from .models.detect import wpod_loss, WPOD
 from .dataset import load_dataset, WPODSampler
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 import optax
 from absl import logging
@@ -64,7 +63,6 @@ def train_wpod(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricTyp
   val_split = unit * ds_split[1] + train_split
   train_sampler = WPODSampler(config.train_batch_size, ds[:train_split], True, config.model.dtype)
   val_sampler = WPODSampler(config.val_batch_size, ds[train_split:val_split], True, config.model.dtype)
-  test_sampler = WPODSampler(config.val_batch_size, ds[val_split:], False, config.model.dtype)
 
   sample_inps, _ = train_sampler.sample(1)
   rng, init_rng, dropout_rng = jax.random.split(rng, 3)
@@ -89,7 +87,7 @@ def train_wpod(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricTyp
     train_loss = []
     for batch in iter(train_sampler):
       (state, rng), metrics = jax.jit(_update_minibatch)((state, rng), batch)
-      train_loss.append(metrics["train"]["loss"].item())
+      train_loss.append(metrics["loss"].item())
 
     try:
       batch = next(val_iter)
