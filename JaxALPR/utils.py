@@ -5,7 +5,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import random
-from absl import flags
+from datetime import datetime
+from ml_collections import ConfigDict
 from typing import Tuple
 
 
@@ -15,6 +16,10 @@ DTYPE = {"float32": jnp.float32,
          "bfloat16": jnp.bfloat16}
 
 
+def get_time() -> str:
+  return datetime.strftime(datetime.now(), "%m%d-%H%M%S")
+
+
 def set_random_seed(seed: int) -> KeyArray:
   random.seed(seed)
   np.random.seed(seed)
@@ -22,9 +27,7 @@ def set_random_seed(seed: int) -> KeyArray:
   return jax.random.PRNGKey(seed)
 
 
-def parse_flags_to_model_config(flags: flags.FlagValues) -> Tuple[ModelConfig, ModelConfig, ModelConfig]:
-  config = flags.model
-
+def parse_flags_to_model_config(config: ConfigDict) -> Tuple[ModelConfig, ModelConfig, ModelConfig]:
   train_config = ModelConfig(vocab_size=config.vocab_size,
                              logits_via_embedding=config.logits_via_embedding,
                              dtype=DTYPE[config.dtype],

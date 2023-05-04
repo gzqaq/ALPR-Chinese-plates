@@ -1,13 +1,15 @@
 from JaxALPR.train import train_wpod
-from JaxALPR.utils import set_random_seed, parse_flags_to_model_config
+from JaxALPR.utils import set_random_seed, parse_flags_to_model_config, get_time
 
 import jax
+import os
 from absl import app, flags
 from ml_collections import config_flags
 
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("seed", 42, "Random seed")
+flags.DEFINE_string("workdir", "ckpts", "Directory to store model data")
 flags.DEFINE_string("ds_dir", "data/train", "Dataset directory")
 flags.DEFINE_string("ds_info_file", "dataset.json", "Name of json dataset file")
 flags.DEFINE_string("dataset_split", "7-2-1", "Train set, validation set and test set")
@@ -20,10 +22,14 @@ config_flags.DEFINE_config_file("model", "configs/wpod.py", "Path to model confi
 
 
 def main(_):
+  print(FLAGS)
+
   rng = set_random_seed(FLAGS.seed)
-  train_config, eval_config, decode_config = parse_flags_to_model_config(FLAGS)
+  train_config, eval_config, decode_config = parse_flags_to_model_config(FLAGS.model)
 
   FLAGS.model = train_config
+  FLAGS.workdir = os.path.join(FLAGS.workdir, get_time())
+  os.makedirs(FLAGS.workdir, exist_ok=True)
 
   rng, _rng = jax.random.split(rng)
   state, metrics = train_wpod(FLAGS, _rng)
