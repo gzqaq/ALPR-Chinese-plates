@@ -17,11 +17,9 @@ class TrainState(train_state.TrainState):
 
 def train_wpod(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricType]:
   def _update_minibatch(runner_state: Tuple[TrainState, KeyArray],
-                        batch: Tuple[BatchType, BatchType]):
+                        batch: BatchType):
     state, rng = runner_state
-    train_batch, val_batch = batch
-    inps, labels = train_batch
-    val_inps, val_labels = val_batch
+    inps, labels = batch
 
     rng, dropout_rng = jax.random.split(rng)
     def loss_fn(params):
@@ -44,17 +42,17 @@ def train_wpod(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricTyp
     )
     train_metrics = {"loss": loss}
 
-    def evaluate(params):
-      logits = new_state.apply_fn(
-        {"params": params, "batch_stats": new_state.batch_stats},
-        val_inps, False,
-        mutable=False,
-      )
+    return (new_state, rng), train_metrics
+  
+  def _evaluate(state: TrainState, val_batch: BatchType):
+    val_inps, val_labels = val_batch
+    logits = state.apply_fn(
+      {"params": state.params, "batch_stats": state.batch_stats},
+      val_inps, False,
+      mutable=False
+    )
 
-      return wpod_loss(logits, val_labels)
-    val_metrics = {"loss": evaluate(new_state.params)}
-
-    return (new_state, rng), {"train": train_metrics, "val": val_metrics}
+    return wpod_loss(logits, val_labels)
   
   model = WPOD(config.model)
   ds = load_dataset(config.ds_dir, config.ds_info_file)
@@ -86,26 +84,24 @@ def train_wpod(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricTyp
 
   total_metrics = {"train_loss": [], "val_loss": []}
   logging.info("Start training...")
+  val_iter = iter(val_sampler)
   for i_epoch in range(config.n_epochs):
     train_loss = []
-    val_loss = []
-
-    val_iter = iter(val_sampler)
-    for train_batch in iter(train_sampler):
-      try:
-        val_batch = next(val_iter)
-      except StopIteration:
-        val_iter = iter(val_sampler)
-        val_batch = next(val_iter)
-
-      (state, rng), metrics = jax.jit(_update_minibatch)((state, rng), (train_batch, val_batch))
+    for batch in iter(train_sampler):
+      (state, rng), metrics = jax.jit(_update_minibatch)((state, rng), batch)
       train_loss.append(metrics["train"]["loss"].item())
-      val_loss.append(metrics["val"]["loss"].item())
 
-    logging.info("Epoch %d: train_loss %f, val_loss %f", i_epoch, np.mean(train_loss), np.mean(val_loss))
+    try:
+      batch = next(val_iter)
+    except StopIteration:
+      val_iter = iter(val_sampler)
+      batch = next(val_iter)
+    val_loss = jax.jit(_evaluate)(state, batch).item()
+
+    logging.info("Epoch %d: train_loss %f, val_loss %f", i_epoch, np.mean(train_loss), val_loss)
     total_metrics["train_loss"].append(train_loss)
     total_metrics["val_loss"].append(val_loss)
 
-    checkpoints.save_checkpoint("ckpts", state, state.step, keep=3)
+    checkpoints.save_checkpoint(config.workdir, state, state.step, keep=3)
 
   return state, metrics
