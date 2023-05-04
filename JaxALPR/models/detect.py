@@ -80,7 +80,7 @@ class WPOD(nn.Module):
   
 
 @jax.jit
-def WPOD_loss(pred: jax.Array, label: jax.Array) -> jax.Array:
+def wpod_loss(pred: jax.Array, label: jax.Array) -> jax.Array:
   obj_pred = pred[..., 0]
   bg_pred = pred[..., 1]
   obj_label = label[..., 0]
@@ -131,4 +131,4 @@ if __name__ == "__main__":
   rng, _rng = jax.random.split(rng)
   fake_labels = jax.random.uniform(_rng, [1, 16, 16, 9])
 
-  print(WPOD_loss(output, fake_labels))
+  print(wpod_loss(output, fake_labels))
