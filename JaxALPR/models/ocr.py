@@ -16,6 +16,8 @@ class ImageEmbed(nn.Module):
     config = self.config
     norm = partial(nn.BatchNorm,
                    use_running_average=not train,
+                   momentum=0.9,
+                   epsilon=1e-5,
                    dtype=config.dtype)
     conv = partial(nn.Conv,
                    dtype=config.dtype,
