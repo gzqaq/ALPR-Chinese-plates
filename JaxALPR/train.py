@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 from absl import logging
-from flax.training import train_state
+from flax.training import train_state, checkpoints
 from ml_collections import ConfigDict
 
 
@@ -58,6 +58,7 @@ def train_wpod(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricTyp
   
   model = WPOD(config.model)
   ds = load_dataset(config.ds_dir, config.ds_info_file)
+  logging.info("Successfully load dataset!")
   ds_split = list(map(lambda x: int(x), config.dataset_split.split("-")))
 
   unit = len(ds) // sum(ds_split)
@@ -83,7 +84,8 @@ def train_wpod(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricTyp
                             batch_stats=batch_stats)
   del model, variables, params, batch_stats
 
-  metrics = {"train_loss": [], "val_loss": []}
+  total_metrics = {"train_loss": [], "val_loss": []}
+  logging.info("Start training...")
   for i_epoch in range(config.n_epochs):
     train_loss = []
     val_loss = []
@@ -97,13 +99,13 @@ def train_wpod(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricTyp
         val_batch = next(val_iter)
 
       (state, rng), metrics = jax.jit(_update_minibatch)((state, rng), (train_batch, val_batch))
-      train_loss.append(metrics["train"]["loss"])
-      val_loss.append(metrics["val"]["loss"])
+      train_loss.append(metrics["train"]["loss"].item())
+      val_loss.append(metrics["val"]["loss"].item())
 
-    train_loss = np.mean(train_loss)
-    val_loss = np.mean(val_loss)
-    logging.info("Epoch %d: train_loss %f, val_loss %f", i_epoch, train_loss, val_loss)
-    metrics["train_loss"].append(train_loss)
-    metrics["val_loss"].append(val_loss)
+    logging.info("Epoch %d: train_loss %f, val_loss %f", i_epoch, np.mean(train_loss), np.mean(val_loss))
+    total_metrics["train_loss"].append(train_loss)
+    total_metrics["val_loss"].append(val_loss)
+
+    checkpoints.save_checkpoint("ckpts", state, state.step, keep=3)
 
   return state, metrics
