@@ -57,10 +57,10 @@ def train_ocr(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricType
     loss = optax.softmax_cross_entropy(logits, onehot).sum()
 
     return loss
-  
+
   model = OCR(config.model)
   dummy_inp = jnp.ones([4, 48, 144, 3])
-  targets = jnp.ones([4, 9])
+  targets = jnp.ones([4, 10])
   rng, init_rng, dropout_rng = jax.random.split(rng, 3)
   variables = model.init({"params": init_rng, "dropout": dropout_rng},
                          dummy_inp, targets)
@@ -76,24 +76,25 @@ def train_ocr(config: ConfigDict, rng: KeyArray) -> Tuple[TrainState, MetricType
   del model, variables, params, batch_stats
 
   total_metrics = {"train_loss": [], "val_loss": []}
-  train_sampler = OCRSampler(config.train_batch_size)
-  val_sampler = OCRSampler(config.val_batch_size)
-  vocab = Vocabulary(9)
+  vocab = Vocabulary(10)
+  train_sampler = OCRSampler(config.train_batch_size, config.ds_dir, vocab)
+  val_sampler = OCRSampler(config.val_batch_size, config.val_ds_dir, vocab)
+  logging.info("Training set: %d, Validation set: %d", len(train_sampler._ds), len(val_sampler._ds))
   logging.info("Start training...")
   for i_epoch in range(config.n_epochs):
-    inps, labels = train_sampler.sample(config.n_minibatches, vocab)
+    inps, labels = train_sampler.sample()
     minibatches = jnp.array(inps, config.model.dtype), jnp.array(labels)
 
     runner_state, metrics = jax.lax.scan(_update_minibatch, (state, rng), minibatches)
     state, rng = runner_state
     total_metrics["train_loss"].append(metrics["loss"])
 
-    val_inp, val_labels = val_sampler.sample(1, vocab)
+    val_inp, val_labels = val_sampler.sample()
     val_batch = jnp.array(val_inp[0], config.model.dtype), jnp.array(val_labels[0])
     total_metrics["val_loss"].append(jax.jit(_evaluate)({"params": state.params, "batch_stats": state.batch_stats}, val_batch))
 
     logging.info("Epoch %d: train_loss %f, val_loss %f", i_epoch, np.mean(metrics["loss"]), total_metrics["val_loss"][-1])
-    checkpoints.save_checkpoint(config.workdir, state, state.step, keep=3)
+    checkpoints.save_checkpoint(config.workdir, state, state.step, keep=7)
 
   return state, total_metrics
 

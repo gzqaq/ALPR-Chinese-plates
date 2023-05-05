@@ -1,6 +1,5 @@
 from .basic_types import Any, Tuple, List, DatasetList, DatasetItem, BatchType
 from .utils import crop, Vocabulary
-from .fake.utils import fake_plate
 
 import jax.numpy as jnp
 import os
@@ -8,6 +7,7 @@ import json
 import cv2
 import numpy as np
 import random
+from string import digits, ascii_letters
 from multiprocessing import cpu_count
 from multiprocessing.dummy import Pool
 
@@ -78,18 +78,41 @@ class WPODSampler(object):
 
 
 class OCRSampler(object):
-  def __init__(self, batch_size: int):
+  def __init__(self, batch_size: int, ds_path: str, vocab: Vocabulary):
     self.batch_size = batch_size
+    self._vocab = vocab
+    self._ds = self._load(ds_path)
 
-  def sample(self, n_minibatches: int, vocab: Vocabulary) -> Tuple[List[List[np.ndarray]], List[List[List[int]]]]:
+  def sample(self) -> Tuple[List[List[np.ndarray]], List[List[List[int]]]]:
     samples = []
-    for _ in range(n_minibatches):
-      minibatch = [fake_plate() for _ in range(self.batch_size)]
+    random.shuffle(self._ds)
+    for i in range(len(self._ds) // self.batch_size):
+      minibatch = self._ds[i * self.batch_size : (i + 1) * self.batch_size]
       img, label = zip(*minibatch)
 
-      samples.append((list(img), vocab.batch_encode(list(label))))
+      samples.append((list(img), self._vocab.batch_encode(list(label))))
 
     return zip(*samples)
+  
+  def _load(self, ds_path: str):
+    files = os.listdir(ds_path)
+    if_valid = lambda x: (x[0] in self._vocab.keys) and \
+                      (x[0] not in digits and x[0] not in ascii_letters) and \
+                      (x.split("_")[0][-1] in self._vocab.keys)
+    files = list(filter(if_valid, files))
+
+    def load_image(filename: str) -> Tuple[np.ndarray, str]:
+      img = np.flip(cv2.imread(os.path.join(ds_path, filename)), -1)
+      label = filename.split("_")[0]
+
+      img = cv2.resize(img, (144, 48)) / 255
+
+      return img, label
+
+    with Pool(cpu_count() * 2) as p:
+      data = p.map(load_image, files)
+
+    return data
 
 
 def load_dataset(ds_dir: str, info_file: str):

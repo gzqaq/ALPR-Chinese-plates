@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
   rng, _rng = jax.random.split(rng)
   dummy_inp = jax.random.uniform(_rng, [4, 48, 144, 3])
-  targets = jnp.ones((4, 9))
+  targets = jnp.ones((4, 10))
 
   # img_emb = ImageEmbed(config, config.embed_dim)
   # rng, _rng = jax.random.split(rng)

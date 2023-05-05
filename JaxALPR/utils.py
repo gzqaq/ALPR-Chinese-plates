@@ -18,7 +18,7 @@ DTYPE = {"float32": jnp.float32,
 
 class Vocabulary(object):
   def __init__(self, max_len: int):
-    self._keys = ["O", "皖", "沪", "津", "渝", "冀", "晋", "蒙", "辽", "吉", "黑", "苏", "浙", "京", "闽", "赣", "鲁", "豫", "鄂", "湘", "粤", "桂", "琼", "川", "贵", "云", "藏", "陕", "甘", "青", "宁", "新"] + ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    self._keys = ["I", "O", "皖", "沪", "津", "渝", "冀", "晋", "蒙", "辽", "吉", "黑", "苏", "浙", "京", "闽", "赣", "鲁", "豫", "鄂", "湘", "粤", "桂", "琼", "川", "贵", "云", "藏", "陕", "甘", "青", "宁", "新", "澳"] + ["A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
     self._vocab = {k: i for i, k in enumerate(self._keys)}
     self._max_len = max_len
 
@@ -33,7 +33,11 @@ class Vocabulary(object):
   
   def batch_encode(self, b_chars: List[str]) -> List[List[int]]:
     res = [self.encode(chars) for chars in b_chars]
-    return list(map(lambda x: x + [0] * (self._max_len - len(x)), res))
+    return list(map(lambda x: [0] + x + [1] * (self._max_len - 1 - len(x)), res))
+  
+  @property
+  def keys(self):
+    return self._keys
 
 
 def get_time() -> str:
