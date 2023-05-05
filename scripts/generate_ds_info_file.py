@@ -7,7 +7,7 @@ H = 1160
 W = 720
 FLAGS = flags.FLAGS
 
-flags.DEFINE_string("ds_dir", "data/train", "Directory of dataset")
+flags.DEFINE_string("ds_dir", "data", "Directory of dataset")
 flags.DEFINE_string("filename", "dataset.json", "Name of info file")
 
 

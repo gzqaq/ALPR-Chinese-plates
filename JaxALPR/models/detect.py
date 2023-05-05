@@ -21,7 +21,7 @@ class DetectBlock(nn.Module):
                    dtype=config.dtype,
                    kernel_init=config.kernel_init,
                    use_bias=False)
-    
+
     clsf = conv(features=2,
                 kernel_size=(3, 3),
                 strides=1,
@@ -31,9 +31,9 @@ class DetectBlock(nn.Module):
                   kernel_size=(3, 3),
                   strides=1,
                   padding="SAME")(inp)
-    
+
     return jnp.concatenate([clsf, affine], axis=-1)
-  
+
 
 class WPOD(nn.Module):
   config: ModelConfig
@@ -57,7 +57,7 @@ class WPOD(nn.Module):
                        window_shape=(2, 2),
                        strides=(2, 2),
                        padding="VALID")
-    
+
     for _ in range(2):
       inp = nn.relu(norm()(conv(16)(inp)))
     inp = max_pool(inp)
@@ -77,9 +77,9 @@ class WPOD(nn.Module):
     inp = nn.relu(norm()(conv(128)(inp)))
     for _ in range(2):
       inp = norm()(ResBlock(config, 128)(inp, train))
-    
+
     return DetectBlock(config)(inp)
-  
+
 
 @jax.jit
 def wpod_loss(pred: jax.Array, label: jax.Array) -> jax.Array:
@@ -91,7 +91,7 @@ def wpod_loss(pred: jax.Array, label: jax.Array) -> jax.Array:
   def log_loss(pred, label):
     loss = -label * jnp.log(jnp.clip(pred, ZERO, 1.))
     return jnp.mean(loss, axis=0)
-  
+
   prob_loss = log_loss(obj_pred, obj_label) + log_loss(bg_pred, bg_label)
 
   affine_1 = jnp.concatenate([nn.relu(pred[..., 2:3]),
@@ -114,8 +114,8 @@ def wpod_loss(pred: jax.Array, label: jax.Array) -> jax.Array:
   mask = obj_label[..., None]
   affine_loss = jnp.linalg.norm(points_label * mask - points_pred * mask,
                                 ord=1, axis=(0, -1))
-  
-  return jnp.mean(prob_loss + affine_loss)
+
+  return jnp.sum(prob_loss + affine_loss)
 
 
 if __name__ == "__main__":
