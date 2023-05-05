@@ -1,5 +1,6 @@
-from .basic_types import Any, Tuple, DatasetList, DatasetItem, BatchType
-from .utils import crop
+from .basic_types import Any, Tuple, List, DatasetList, DatasetItem, BatchType
+from .utils import crop, Vocabulary
+from .fake.utils import fake_plate
 
 import jax.numpy as jnp
 import os
@@ -75,6 +76,20 @@ class WPODSampler(object):
   def dtype(self):
     return self._dtype
 
+
+class OCRSampler(object):
+  def __init__(self, batch_size: int):
+    self.batch_size = batch_size
+
+  def sample(self, n_minibatches: int, vocab: Vocabulary) -> Tuple[List[List[np.ndarray]], List[List[List[int]]]]:
+    samples = []
+    for _ in range(n_minibatches):
+      minibatch = [fake_plate() for _ in range(self.batch_size)]
+      img, label = zip(*minibatch)
+
+      samples.append((list(img), vocab.batch_encode(list(label))))
+
+    return zip(*samples)
 
 
 def load_dataset(ds_dir: str, info_file: str):

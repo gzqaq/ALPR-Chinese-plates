@@ -1,4 +1,4 @@
-from JaxALPR.train import train_wpod
+from JaxALPR.train import train_wpod, train_ocr
 from JaxALPR.utils import set_random_seed, parse_flags_to_model_config, get_time
 
 import jax
@@ -14,6 +14,7 @@ flags.DEFINE_string("ds_dir", "data", "Dataset directory")
 flags.DEFINE_string("ds_info_file", "dataset.json", "Name of json dataset file")
 flags.DEFINE_string("dataset_split", "7-2-1", "Train set, validation set and test set")
 flags.DEFINE_integer("n_epochs", 100, "Number of training epochs")
+flags.DEFINE_integer("n_minibatches", 10, "Number of training epochs")
 flags.DEFINE_integer("train_batch_size", 128, "Training batch size")
 flags.DEFINE_integer("val_batch_size", 64, "Validation batch size")
 flags.DEFINE_float("clip_norm", 1.01, "Clip gradient norm")
@@ -30,7 +31,7 @@ def main(_):
   os.makedirs(FLAGS.workdir, exist_ok=True)
 
   rng, _rng = jax.random.split(rng)
-  state, metrics = train_wpod(FLAGS, _rng)
+  state, metrics = train_ocr(FLAGS, _rng)
 
 
 if __name__ == "__main__":
