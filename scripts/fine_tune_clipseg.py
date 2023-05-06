@@ -9,7 +9,7 @@ from transformers import AutoProcessor, CLIPSegForImageSegmentation
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string("ckpt_path", "ckpts/clipseg", "Directory path to saved model")
-flags.DEFINE_string("ds_path", "data", "Directory path to train data set")
+flags.DEFINE_string("ds_path", "dataset/detect", "Directory path to train data set")
 flags.DEFINE_integer("batch_size", 32, "Batch size")
 flags.DEFINE_integer("n_epochs", 100, "Number of training epochs")
 flags.DEFINE_integer("save_period", 3, "Number of epochs between checkpoint saving")
