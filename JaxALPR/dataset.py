@@ -27,17 +27,30 @@ class WPODSampler(object):
     self._shuffle = shuffle
     self._dtype = dtype
 
+    self._cached = {}
+
     if shuffle:
       random.shuffle(self._ds)
 
   def sample(self, num: int = 1) -> BatchType:
     batch = self.ds[:num]
     with Pool(cpu_count() * 2) as p:
-      batch = p.map(generate_wpod_data_points, batch)
+      batch = p.map(self._generate_data_point, batch)
       inps, labels = zip(*batch)
 
-      return jnp.array(inps, dtype=self.dtype), jnp.array(labels,
-                                                          dtype=self.dtype)
+      return np.array(inps, dtype=self.dtype), np.array(labels, dtype=self.dtype)
+    
+  def _generate_data_point(self, ds_item: DatasetItem):
+    if ds_item[0] in self._cached:
+      return self._cached[ds_item[0]]
+    else:
+      img, coords, _ = load_image(ds_item)
+      label = np.array(object_label(coords, 352, 1), dtype=np.float32)
+
+      res = np.array(img / 255, dtype=np.float32), label
+      self._cached[ds_item[0]] = res
+
+      return res
 
   def __iter__(self):
     self._cnt = 0
@@ -54,11 +67,10 @@ class WPODSampler(object):
       self._cnt += self.bs
 
       with Pool(cpu_count() * 2) as p:
-        batch = p.map(generate_wpod_data_points, batch)
+        batch = p.map(self._generate_data_point, batch)
         inps, labels = zip(*batch)
 
-        return jnp.array(inps, dtype=self.dtype), jnp.array(labels,
-                                                            dtype=self.dtype)
+        return np.array(inps, dtype=self.dtype), np.array(labels, dtype=self.dtype)
 
   @property
   def bs(self):
@@ -160,8 +172,8 @@ def object_label(coords: np.ndarray, image_size: int, stride: int):
 
     for i in range(4):
       j = 3 if i == 0 else i - 1
-      if ((ys[i] > y) != (ys[j] > y)) and (x < (xs[j] - xs[i]) * (y - ys[i]) /
-                                           (ys[j] - ys[i]) + xs[i]):
+      if ((ys[i] > y) != (ys[j] > y)) and \
+         (x < (xs[j] - xs[i]) * (y - ys[i]) / (ys[j] - ys[i]) + xs[i]):
         res = not res
 
     return res
@@ -180,12 +192,6 @@ def object_label(coords: np.ndarray, image_size: int, stride: int):
 
   return label
 
-
-def generate_wpod_data_points(ds_item: DatasetItem):
-  img, coords, _ = load_image(ds_item)
-  label = jnp.array(object_label(coords, img.shape[0], 16), dtype=jnp.float32)
-
-  return jnp.array(img / 255, dtype=jnp.float32), label
 
 
 if __name__ == "__main__":
