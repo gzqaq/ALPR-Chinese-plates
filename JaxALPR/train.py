@@ -88,6 +88,9 @@ def train_ocr(config: ConfigDict,
                             batch_stats=batch_stats)
   del model, variables, params, batch_stats
 
+  if len(config.restore_ckpt) > 0:
+    state = checkpoints.restore_checkpoint(config.restore_ckpt, state)
+
   total_metrics = {"train_loss": [], "val_loss": []}
   vocab = Vocabulary(10)
   train_sampler = OCRSampler(config.train_batch_size, config.ds_dir, vocab)

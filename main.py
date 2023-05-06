@@ -88,9 +88,8 @@ def run_interactive(models):
   detect_model = models["detect"]
   ocr_model = models["ocr"]
 
-  print(
-      "Enter paths to image or directory to recognize (separated by space), or 'quit' to end the program."
-  )
+  print("Enter paths to image or directory to recognize (separated by space), "
+        "or 'quit' to end the program.")
   try:
     while True:
       comm = input(">>> ")
@@ -125,6 +124,7 @@ def run_interactive(models):
         for pth, number in zip(img_pths, numbers):
           print(f"{pth}: {number}")
   except KeyboardInterrupt:
+    print()
     return
 
 
