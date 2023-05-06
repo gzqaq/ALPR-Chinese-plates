@@ -27,7 +27,11 @@ def main(_):
     lp_coords = list(map(lambda x: parse_coords(x.split("&")), lp_coords))
     lpn = list(map(lambda x: int(x), lpn.split("_")))
 
-    ds.append({"filename": f, "coords": np.array(lp_coords).T.tolist(), "number": lpn})
+    ds.append({
+        "filename": f,
+        "coords": np.array(lp_coords).T.tolist(),
+        "number": lpn
+    })
 
   with open(os.path.join(FLAGS.ds_dir, FLAGS.filename), "w") as fd:
     json.dump(ds, fd)
