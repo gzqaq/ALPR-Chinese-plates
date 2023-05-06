@@ -1,6 +1,7 @@
 name: jax-alpr
 channels:
   - conda-forge
+  - pytorch
   - nvidia
 dependencies:
   - python=3.9
@@ -10,9 +11,12 @@ dependencies:
   - cudatoolkit=11.7
   - cuda-nvcc=11.7
   - cudnn
+  - pytorch
+  - pytorch-cuda=11.7
   - opencv
   - jupyter
   - pip:
     - flax
     - optax
     - ml_collections
+    - transformers

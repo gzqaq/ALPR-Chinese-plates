@@ -17,7 +17,7 @@ flags.DEFINE_integer("train_batch_size", 128, "Training batcactih size")
 flags.DEFINE_integer("val_batch_size", 64, "Validation batch size")
 flags.DEFINE_float("clip_norm", 1.01, "Clip gradient norm")
 flags.DEFINE_float("lr", 5e-5, "Learning rate")
-config_flags.DEFINE_config_file("model", "configs/wpod.py", "Path to model config file", lock_config=False)
+config_flags.DEFINE_config_file("model", "configs/model.py", "Path to model config file", lock_config=False)
 
 
 def main(_):
